@@ -10,6 +10,9 @@ actual_capacity={'SL1': 80, 'SL2': 125, 'Basement' : 142 }
 capacity={'SL1': 60, 'SL2': 100, 'Basement' : 120 }
 roll_to_name={}
 jta_name={}
+basement_seats=[9,20,30,42,54,67,80,92,105,116,130,142]
+sl1_seats=[12,24,35,45,52,59,66,73,80]
+sl2_seats=[14,27,40,53,66,80,94,107,119,125]
 
 # read the data 
 def read_data(students_file,jtas_file):
@@ -144,36 +147,111 @@ def map_to_lab_tue(a,base):
       jta_to_lab[jta]='SL2'
   return jta_to_lab 
 
+def get_rows(jta_st, jta_lab) :
+  global basement_seats
+  global sl1_seats
+  global sl2_seats
+  base_cap=basement_seats[-1]
+  sl1_cap=sl1_seats[-1]
+  sl2_cap=sl2_seats[-1]
+  base_st=0
+  base_groups=0
+  sl1_st=0
+  sl1_groups=0
+  sl2_st=0
+  sl2_groups=0
+  for jta,students in jta_st.items():
+    if jta_lab[jta]=='Basement':
+      base_st+=len(students)
+      base_groups+=1
+    elif jta_lab[jta]=='SL1':
+      sl1_st+=len(students)
+      sl1_groups+=1
+    else :
+      sl2_st+=len(students)
+      sl2_groups+=1
+  gap_base=(base_cap-base_st)//(base_groups)
+  gap_sl1=(sl1_cap-sl1_st)//(sl1_groups)
+  gap_sl2=(sl2_cap-sl2_st)//(sl2_groups)
+  base_r=0
+  base_sum=0
+  sl1_r=0
+  sl1_sum=0
+  sl2_r=0
+  sl2_sum=0
+  jta_row={}
+  for jta,students in jta_st.items():
+    if jta_lab[jta]=='Basement':
+      base_sum+=len(students) 
+      base_sum+=gap_base
+      i=0
+      while basement_seats[base_r+i] < base_sum :
+        i+=1
+      jta_row[jta]="R"+str(base_r+1)+"-R"+str(base_r+i+1) 
+      base_r=base_r+i
+      if basement_seats[base_r]==base_sum :
+        base_r+=1
+    if jta_lab[jta]=='SL1':
+      sl1_sum+=len(students) 
+      sl1_sum+=gap_sl1
+      i=0
+      while sl1_seats[sl1_r+i] < sl1_sum :
+        i+=1
+      jta_row[jta]="R"+str(sl1_r+1)+"-R"+str(sl1_r+i+1) 
+      sl1_r=sl1_r+i
+      if sl1_seats[sl1_r]==sl1_sum :
+        sl1_r+=1
+    if jta_lab[jta]=='SL2':
+      sl2_sum+=len(students) 
+      sl2_sum+=gap_sl2
+      i=0
+      while sl2_seats[sl2_r+i] < sl2_sum :
+        i+=1
+      jta_row[jta]="R"+str(sl2_r+1)+"-R"+str(sl2_r+i+1) 
+      sl2_r=sl2_r+i
+      if sl2_seats[sl2_r]==sl2_sum :
+        sl2_r+=1
+  return jta_row
+
 def write_to_file(a,a_lab,b,b_lab, c, c_lab):
   global roll_to_name
+  gp=0
   with open('mapping.csv','w+') as file :
-    file.write("Serial No. , Roll No. , Name , Day , Venue , JTA Name")
+    file.write("Serial No. , Roll No. , Name , Day , Venue , JTA Name , Rows")
     file.write('\n')
     ind=1
+    jta_row=get_rows(a,a_lab)
     for jta,students in a.items() :
-      file.write(str(ind)+","+students[0]+","+roll_to_name[students[0]]+","+"Tuesday,"+a_lab[jta]+","+jta_name[jta])
+      gp=max(gp,len(students))
+      file.write(str(ind)+","+students[0]+","+roll_to_name[students[0]]+","+"Tuesday,"+a_lab[jta]+","+jta_name[jta]+","+jta_row[jta])
       file.write('\n')
       ind+=1
       for i in range(1,len(students)):
         file.write(str(ind)+","+students[i]+","+roll_to_name[students[i]]+","+","+",")
         file.write('\n')
         ind+=1
+    jta_row=get_rows(b,b_lab)
     for jta,students in b.items() :
-      file.write(str(ind)+","+students[0]+","+roll_to_name[students[0]]+","+"Wednesday,"+b_lab[jta]+","+jta_name[jta])
+      gp=max(gp,len(students))
+      file.write(str(ind)+","+students[0]+","+roll_to_name[students[0]]+","+"Wednesday,"+b_lab[jta]+","+jta_name[jta]+","+jta_row[jta])
       file.write('\n')
       ind+=1
       for i in range(1,len(students)):
         file.write(str(ind)+","+students[i]+","+roll_to_name[students[i]]+","+","+",")
         file.write('\n')
         ind+=1
+    jta_row=get_rows(c,c_lab)
     for jta,students in c.items() :
-      file.write(str(ind)+","+students[0]+","+roll_to_name[students[0]]+","+"Thursday,"+c_lab[jta]+","+jta_name[jta])
+      gp=max(gp,len(students))
+      file.write(str(ind)+","+students[0]+","+roll_to_name[students[0]]+","+"Thursday,"+c_lab[jta]+","+jta_name[jta]+","+jta_row[jta])
       file.write('\n')
       ind+=1
       for i in range(1,len(students)):
         file.write(str(ind)+","+students[i]+","+roll_to_name[students[i]]+","+","+",")
         file.write('\n')
         ind+=1
+  print("Maximum group size - " + str(gp))
+
 
 def split_students(students,others,jtas_dict,jtas_to_use):
   total=len(students)
